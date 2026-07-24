@@ -1,0 +1,16 @@
+import tomllib
+from pathlib import Path
+from typing import Any
+
+
+def parse_toml_config(file_path: str | Path) -> dict[str, Any]:
+    """Читает TOML-файл и возвращает сырой словарь без валидации."""
+    path = Path(file_path)
+    
+    if not path.is_file():
+        raise FileNotFoundError(f"Конфигурационный файл не найден: {path.resolve()}")
+
+    with path.open("rb") as f:
+        return tomllib.load(f)
+
+config = parse_toml_config('./aegis.toml')

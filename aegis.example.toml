@@ -1,0 +1,21 @@
+[settings]
+queue = false
+code = 202
+
+[server]
+address = "127.0.0.1:8000"
+rm = '5/m'
+rrm = '1/m'
+all_path = true
+
+[[route]]
+path = "/api/v1/products"
+rm = "5/m"
+rrm = "1/m"
+active = true
+
+[[route]]
+path = "/api/v1/users"
+rm = "10/m"
+rrm = 'server'
+active = false

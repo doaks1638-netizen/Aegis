@@ -7,6 +7,10 @@
 ## Config
 
 ```toml
+[settings]
+queue=false # True - queued and sent code; False - client will wait
+code=202
+
 [server]
 address = "127.0.0.1:8000" # address where requests are forwarded
 rm = '5/m' # default rate limiter (for server and all_path)
@@ -25,3 +29,7 @@ rm = "10/m"
 rrm = 'server' # if omitted entirely, all requests bypass rrm immediately
 active = false # whether to serve this API?
 ```
+
+## Roadmap
+
+![Aegis roadmap](./docs/roadmap.png)
