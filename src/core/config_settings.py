@@ -19,7 +19,7 @@ class Route(BaseModel):
 class ConfigSettings(BaseSettings):
     # --- SETTINGS ---
     need_queue: bool
-    responce_code: int = Field(default=202, gt=0, lt=600)
+    response_code: int = Field(default=202, gt=0, lt=600)
 
     # --- SERVER ---
     address: str
@@ -49,3 +49,4 @@ config_settings = ConfigSettings(
     all_path=config["settings"].get("all_path", False),
     router=config.get("route"),
 )
+router_paths = {router.path for router in config_settings.routes}
