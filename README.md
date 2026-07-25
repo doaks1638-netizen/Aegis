@@ -7,10 +7,6 @@
 ## Config
 
 ```toml
-[settings]
-queue=false # True - queued and sent code; False - client will wait
-code=202
-
 [server]
 address = "127.0.0.1:8000" # address where requests are forwarded
 rm = '5/m' # default rate limiter (for server and all_path)
@@ -21,6 +17,8 @@ all_path = true # for routes not listed in the config, use the server settings
 path = "/api/v1/products"
 rm = "5/m" # how many requests will be accepted
 rrm = "1/m" # how many requests will actually reach the server
+queue=false # True - queued and sent code; False - client will wait; False by default
+code=202 # also default code for queue
 active = true
 
 [[route]]

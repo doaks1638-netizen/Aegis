@@ -35,10 +35,6 @@ class ConfigSettings(BaseSettings):
 
     all_path: bool
 
-    # --- ROUTES ---
-
-    routes: list[Route] | list
-
 
 config_settings = ConfigSettings(
     need_queue=config.get("settings", {}).get("queue", False),
@@ -47,6 +43,6 @@ config_settings = ConfigSettings(
     server_rm=config["settings"].get("rm", None),
     server_rrm=config["settings"].get("rrm", None),
     all_path=config["settings"].get("all_path", False),
-    router=config.get("route"),
 )
-router_paths = {router.path for router in config_settings.routes}
+routes = [Route.model_validate(route) for route in config.get("route")]
+router_paths = {router.path: router for router in routes}

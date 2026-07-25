@@ -1,0 +1,71 @@
+import time
+
+from fastapi import Request
+from redis import Redis
+
+from src.core import config_settings, router_paths
+
+from .rm_enum import Action
+
+
+def sec_of_limit(limit: str):
+    match limit[-1]:
+        case "s":
+            rm = 1
+        case "m":
+            rm = 60
+        case "h":
+            rm = 3600
+        case "d":
+            rm = 216000
+        case "y":
+            rm = 12960000
+        case _:
+            raise TypeError("Такие единициы измерения не поддерживаются")
+    return int(limit.split("/")[0]), int(rm)
+
+
+async def limit_exceeded(request: Request, path: str, all_path: bool = False):
+    redis: Redis = request.app.state.redis
+    client_ip = request.client.host if request.client else None
+    request_time = time.time()
+    if not client_ip:
+        raise TypeError("Неизвестный ip")
+
+    async def checker(rm, key):
+        if not rm:
+            return False
+        count, rm = sec_of_limit(rm)
+        key = f"{key}:{client_ip}"
+        await redis.zadd(key, {request_time, request_time})
+        await redis.zremrangebyscore(key, "-inf", time.time() - rm)
+        return redis.zcard(key) > count
+
+    if all_path:
+        key = "limit:all_path"
+        rm = config_settings.server_rm
+        await checker(rm, key)
+    else:
+        key = f"limit:{path}"
+        rm = router_paths[path].rm
+        if not rm:
+            rm = config_settings.server_rm
+        await checker(rm, key)
+
+
+async def evaluate(request: Request):
+    path = request.url.path
+    while path != "":
+        if path in router_paths:
+            if await limit_exceeded(request, path):
+                return Action.BLOCK
+            else:
+                return Action.GO
+        path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
+    if config_settings.all_path:
+        if await limit_exceeded(request, "", all_path=True):
+            return Action.BLOCK
+        else:
+            return Action.GO
+    else:
+        return Action.PROXY
