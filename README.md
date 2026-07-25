@@ -16,7 +16,7 @@ sudo docker compose up --build
 ## Config
 
 ```toml
-[server]
+[settings]
 address = "127.0.0.1:8000" # address where requests are forwarded
 rm = '5/m' # default rate limiter (for server and all_path)
 rrm = '1/m'
@@ -34,7 +34,7 @@ active = true
 [[route]]
 path = "/api/v1/users"
 rm = "10/m"
-rrm = 'server' # if omitted entirely, all requests bypass rrm immediately
+rrm = '1/m' # if omitted entirely, all requests bypass rrm immediately
 active = false # whether to serve this API?
 ```
 

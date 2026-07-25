@@ -40,12 +40,12 @@ class ConfigSettings(BaseSettings):
 
 config_settings = ConfigSettings(
     need_queue=config.get("settings", {}).get("queue", False),
-    responce_code=config.get("settings", {}).get("code", 202),
+    response_code=config.get("settings", {}).get("code", 202),
     address=config["settings"]["address"],
     server_rm=config["settings"].get("rm", None),
     server_rrm=config["settings"].get("rrm", None),
-    queue=config["settings"].get("rrm", False),
+    server_queue=config["settings"].get("queue", False),
     all_path=config["settings"].get("all_path", False),
 )
-routes = [Route.model_validate(route) for route in config.get("route")]
+routes = [Route.model_validate(route) for route in config.get("route", [])]
 router_paths = {router.path: router for router in routes}

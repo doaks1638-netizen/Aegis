@@ -13,8 +13,10 @@ ENV PYTHONUNBUFFERED=1
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-COPY .env /Aegis/
+WORKDIR /Aegis
 
-COPY --from=builder /backend/.venv .venv
+COPY .env .
 
-COPY src/ /Aegis/
+COPY --from=builder .venv .venv
+
+COPY src/ .

@@ -1,6 +1,7 @@
 import asyncio
 import json
 from uuid import uuid4
+import time
 
 from fastapi import FastAPI
 from redis import Redis
@@ -16,12 +17,21 @@ async def worker_task(app: FastAPI, path: str, rrm: str):
     key = f"queue:{path}" if path is not None else "queue:general"
     last_modifed_key = f"last_modifed:worker_{uuid4()}"
     while True:
-        if await (last_modifed := redis.get(last_modifed_key)) <= tact:
+        last_modifed_key_value = await redis.get(last_modifed_key)
+        if (
+            last_modifed := time.time()
+            - float(
+                last_modifed_key_value
+                if last_modifed_key_value is not None
+                else tact + 10
+            )
+        ) > tact:
             result = json.loads(await redis.brpop(key))
             response = await proxy_pass_dict(data=result["request"], app=app)
             if (lock_key := result["lock"]) is not None:
-                await redis.lpush(lock_key, response)
+                await redis.lpush(lock_key, json.dumps(response))
+                await redis.set(last_modifed_key, time.time())
             else:
                 pass  # Скоро будет возможность вебхука, следите за релизами!
         else:
-            await asyncio.sleep(rrm - last_modifed)
+            await asyncio.sleep(tact - last_modifed)
