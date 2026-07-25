@@ -45,7 +45,7 @@ async def handler_func(request: Request):
         if result is None:
             raise HTTPException(504, detail="Не удалось получить ответ!")
         _, value = result
-        return Response(content=value, media_type="application/json")
+        return Response(**value)
 
     else:
         value = {"lock": None, "request": await request_to_dict(request=request)}
@@ -53,6 +53,6 @@ async def handler_func(request: Request):
             request=request, path=request.url.path, general=general, value=value
         )
         return JSONResponse(
-            status_code=202,
+            status_code=config_settings.response_code,
             content="Данные успешно получаенны. Скоро все будет обработано!",
         )

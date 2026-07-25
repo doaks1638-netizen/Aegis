@@ -19,11 +19,25 @@ async def proxy_pass(request: Request) -> Response:
     )
 
 
-async def proxy_pass_dict(data: dict, app: FastAPI):
+async def proxy_pass_dict(data: dict, app: FastAPI) -> dict:
     client: AsyncClient = app.state.client
-    return await client.request(
+
+    response = await client.request(
         method=data["method"],
         url=data["url"],
         headers=data["headers"],
         content=data["body"].encode("utf-8"),
     )
+
+    headers = dict(response.headers)
+
+    # удаляем заголовки, которые могут сломать ответ (так как response.text уже раскодирован)
+    headers.pop("content-length", None)
+    headers.pop("content-encoding", None)
+
+    return {
+        "status_code": response.status_code,
+        "content": response.text,
+        "headers": headers,
+        "media_type": response.headers.get("content-type"),
+    }

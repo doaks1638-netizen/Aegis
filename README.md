@@ -1,5 +1,14 @@
 # Aegis
 
+## Usage
+
+```bash
+git clone https://github.com/doaks1638-netizen/Aegis.git && cd Aegis
+mv .env.example .env && vim .env
+vim aegis.toml
+sudo docker compose up --build
+```
+
 ## Architecture
 
 ![Aegis architecture](./docs/architecture.png)
