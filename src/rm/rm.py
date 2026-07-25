@@ -21,7 +21,7 @@ def sec_of_limit(limit: str):
         case "y":
             rm = 12960000
         case _:
-            raise TypeError("Такие единициы измерения не поддерживаются")
+            raise TypeError("Such measurement units are not supported")
     return int(limit.split("/")[0]), int(rm)
 
 
@@ -30,7 +30,7 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
     client_ip = request.client.host if request.client else None
     request_time = time.time()
     if not client_ip:
-        raise TypeError("Неизвестный ip")
+        raise TypeError("Unknown IP")
 
     async def checker(rm, key):
         if not rm:
@@ -68,7 +68,7 @@ async def evaluate(request: Request):
                 return (
                     Action.GO,
                     True,
-                )  # True - мы попали в all_path берем опредленого воркера
+                )  # True - matched path, take specific worker
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
     if config_settings.all_path:
         if await limit_exceeded(request, "", all_path=True):
@@ -78,6 +78,6 @@ async def evaluate(request: Request):
         return (
             Action.GO,
             False,
-        )  # False - берем общего воркера
+        )  # False - take general worker
     else:
         return Action.PROXY

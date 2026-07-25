@@ -9,6 +9,10 @@ vim aegis.toml
 sudo docker compose up --build
 ```
 
+## Warning
+
+- Aegis uses ports 6379 and 6378 to operate. If you need to change these, specify them in docker-compose.
+
 ## Architecture
 
 ![Aegis architecture](./docs/architecture.png)

@@ -31,7 +31,7 @@ async def proxy_pass_dict(data: dict, app: FastAPI) -> dict:
 
     headers = dict(response.headers)
 
-    # удаляем заголовки, которые могут сломать ответ (так как response.text уже раскодирован)
+    # remove headers that could break the response (since response.text is already decoded)
     headers.pop("content-length", None)
     headers.pop("content-encoding", None)
 

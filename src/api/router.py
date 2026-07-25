@@ -20,7 +20,7 @@ async def request_to_dict(request: Request) -> dict:
         "method": request.method,
         "url": str(request.url),
         "headers": dict(request.headers),
-        # Декодируем байты в обычную строку (работает для JSON и текста)
+        # Decode bytes into a standard string (works for JSON and text)
         "body": (await request.body()).decode("utf-8"),
     }
 
@@ -45,7 +45,7 @@ async def handler_func(request: Request):
         )
         result = await redis.blpop(lock_key, timeout=15)
         if result is None:
-            raise HTTPException(504, detail="Не удалось получить ответ!")
+            raise HTTPException(504, detail="Failed to get response!")
         _, value = result
         return Response(**json.loads(value))
 
@@ -56,5 +56,5 @@ async def handler_func(request: Request):
         )
         return JSONResponse(
             status_code=config_settings.response_code,
-            content="Данные успешно получены. Скоро все будет обработано!",
+            content="Data successfully received. Processing will be finished soon!",
         )

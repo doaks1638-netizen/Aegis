@@ -32,6 +32,6 @@ async def worker_task(app: FastAPI, path: str, rrm: str):
                 await redis.lpush(lock_key, json.dumps(response))
                 await redis.set(last_modifed_key, time.time())
             else:
-                pass  # Скоро будет возможность вебхука, следите за релизами!
+                pass  # Webhook support coming soon, stay tuned for releases!
         else:
             await asyncio.sleep(tact - last_modifed)

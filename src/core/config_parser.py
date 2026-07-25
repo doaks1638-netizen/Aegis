@@ -4,11 +4,11 @@ from typing import Any
 
 
 def parse_toml_config(file_path: str | Path) -> dict[str, Any]:
-    """Читает TOML-файл и возвращает сырой словарь без валидации."""
+    """Reads a TOML file and returns a raw dictionary without validation."""
     path = Path(file_path)
     
     if not path.is_file():
-        raise FileNotFoundError(f"Конфигурационный файл не найден: {path.resolve()}")
+        raise FileNotFoundError(f"Configuration file not found: {path.resolve()}")
 
     with path.open("rb") as f:
         return tomllib.load(f)
