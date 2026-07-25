@@ -11,13 +11,14 @@
 address = "127.0.0.1:8000" # address where requests are forwarded
 rm = '5/m' # default rate limiter (for server and all_path)
 rrm = '1/m'
+queue=false # True - queued and sent code; False - client will wait; False by default
 all_path = true # for routes not listed in the config, use the server settings
 
 [[route]] # use this directive to define a route
 path = "/api/v1/products"
 rm = "5/m" # how many requests will be accepted
 rrm = "1/m" # how many requests will actually reach the server
-queue=false # True - queued and sent code; False - client will wait; False by default
+queue=false 
 code=202 # also default code for queue
 active = true
 

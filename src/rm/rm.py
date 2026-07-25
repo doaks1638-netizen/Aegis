@@ -59,13 +59,25 @@ async def evaluate(request: Request):
         if path in router_paths:
             if await limit_exceeded(request, path):
                 return Action.BLOCK
+            current = router_paths[path]
+            if current.rm == current.rrm or (
+                not current.rrm and current.rm == config_settings.server_rrm
+            ):
+                return Action.PROXY
             else:
-                return Action.GO
+                return (
+                    Action.GO,
+                    True,
+                )  # True - мы попали в all_path берем опредленого воркера
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
     if config_settings.all_path:
         if await limit_exceeded(request, "", all_path=True):
             return Action.BLOCK
-        else:
-            return Action.GO
+        if not config_settings.server_rrm:
+            return Action.PROXY
+        return (
+            Action.GO,
+            False,
+        )  # False - берем общего воркера
     else:
         return Action.PROXY

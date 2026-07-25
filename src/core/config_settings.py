@@ -13,7 +13,8 @@ class Route(BaseModel):
     path: str
     rm: RM
     rrm: RM
-    active: bool
+    active: bool = True
+    queue: bool = False
 
 
 class ConfigSettings(BaseSettings):
@@ -32,6 +33,7 @@ class ConfigSettings(BaseSettings):
 
     server_rm: RM
     server_rrm: RM
+    server_queue: bool
 
     all_path: bool
 
@@ -42,6 +44,7 @@ config_settings = ConfigSettings(
     address=config["settings"]["address"],
     server_rm=config["settings"].get("rm", None),
     server_rrm=config["settings"].get("rrm", None),
+    queue=config["settings"].get("rrm", False),
     all_path=config["settings"].get("all_path", False),
 )
 routes = [Route.model_validate(route) for route in config.get("route")]
