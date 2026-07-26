@@ -1,4 +1,4 @@
-# Aegis 👑
+# Aegis
 
 [![Python](https://img.shields.io/badge/Python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.139%2B-00a393.svg)](https://fastapi.tiangolo.com/)
