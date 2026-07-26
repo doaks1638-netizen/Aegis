@@ -1,7 +1,7 @@
 import asyncio
 import json
-from uuid import uuid4
 import time
+from uuid import uuid4
 
 from fastapi import FastAPI
 from redis import Redis
@@ -31,7 +31,5 @@ async def worker_task(app: FastAPI, path: str, rrm: str):
             if (lock_key := result["lock"]) is not None:
                 await redis.lpush(lock_key, json.dumps(response))
                 await redis.set(last_modifed_key, time.time())
-            else:
-                pass  # Webhook support coming soon, stay tuned for releases!
         else:
             await asyncio.sleep(tact - last_modifed)
