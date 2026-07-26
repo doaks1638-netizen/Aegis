@@ -1,20 +1,21 @@
 import asyncio
+from contextlib import asynccontextmanager
 
 import redis.asyncio as asyncioredis
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from src.api import app
 from src.core import config_settings, routes, settings
 from src.queue import worker_task
 
 
-@app.lifespan()
+@asynccontextmanager
 async def lifespan(app: FastAPI):
-    transport = ASGITransport(app=app)
     async with (
-        AsyncClient(transport=transport) as client,
-        asyncioredis.from_url(settings.get_redis_url(), decode_responses=True) as redis,
+        AsyncClient() as client,
+        asyncioredis.from_url(
+            settings.get_redis_url(), decode_responses=True, socket_timeout=30.0
+        ) as redis,
     ):
         app.state.client = client
         app.state.redis = redis

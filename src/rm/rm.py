@@ -39,7 +39,7 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
         key = f"{key}:{client_ip}"
         await redis.zadd(key, {request_time: request_time})
         await redis.zremrangebyscore(key, "-inf", time.time() - rm)
-        return redis.zcard(key) > count
+        return await redis.zcard(key) > count
 
     if all_path:
         key = "limit:all_path"
@@ -68,6 +68,7 @@ async def evaluate(request: Request):
                 return (
                     Action.GO,
                     True,
+                    router_paths[path].queue
                 )  # True - matched path, take specific worker
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
     if config_settings.all_path:
@@ -78,6 +79,7 @@ async def evaluate(request: Request):
         return (
             Action.GO,
             False,
+            config_settings.server_queue
         )  # False - take general worker
     else:
         return Action.PROXY

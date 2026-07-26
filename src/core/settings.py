@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str
 
     def get_redis_url(self):
-        return f"redis://:${self.REDIS_PASSWORD}@redis:6379/0"
+        return f"redis://:{self.REDIS_PASSWORD}@redis:6379/0"
 
     model_config = SettingsConfigDict(
         extra="ignore",
