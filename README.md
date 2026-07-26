@@ -1,47 +1,82 @@
 # Aegis 👑
 
-## Usage
+[![Python](https://img.shields.io/badge/Python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.139%2B-00a393.svg)](https://fastapi.tiangolo.com/)
+[![Redis](https://img.shields.io/badge/Redis-8.0%2B-dc382d.svg)](https://redis.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ed.svg)](https://www.docker.com/)
 
-```bash
-git clone https://github.com/doaks1638-netizen/Aegis.git && cd Aegis
-mv .env.example .env && vim .env
-vim aegis.toml
-sudo docker compose up --build
-```
+**Aegis** is an ergonomic, high-performance API Gateway, Traffic Shaper, and Queuing Reverse Proxy built with Python, FastAPI, and Redis. It acts as a protective shield around your backend, preventing server overload without dropping client requests.
 
-## Warning
+---
 
-- Aegis uses ports 6379 and 6378 to operate. If you need to change these, specify them in docker-compose. You may also have problems deploying to a local network due to Docker, use your local network address
+## ✨ Features & Two-Stage Traffic Shaping
 
-## Architecture
+1. **Client Rate Limiting (`rm`)**: Blocks spam/DDoS requests when client limits are exceeded (HTTP 429).
+2. **Backend Rate Throttling (`rrm`)**: Controls the exact speed of requests reaching your target server.
+3. **Redis Queuing (`queue`)**: Queues excess requests in Redis and processes them smoothly at safe backend rates.
+   - `queue = true`: **Sync Mode** — connection is held until the backend responds (ideal for AI/LLM & heavy queries).
+   - `queue = false`: **Async Mode** — returns `202 Accepted` immediately, worker processes in background (ideal for webhooks).
+
+---
+
+## 🏗️ Architecture
 
 ![Aegis architecture](./docs/architecture.png)
 
-## Config
+---
+
+## 🚀 Quick Start
+
+```bash
+git clone https://github.com/doaks1638-netizen/Aegis.git && cd Aegis
+mv .env.example .env
+sudo docker compose up --build
+```
+
+> ⚠️ **Note**: Aegis uses ports `6379` (Redis) and `6378`. Adjust in `docker-compose.yaml` if needed.
+
+---
+
+## ⚙️ Configuration (`aegis.toml`)
+
+Units: `s` (seconds), `m` (minutes), `h` (hours), `d` (days), `y` (years).
 
 ```toml
 [settings]
-address = "127.0.0.1:8000" # address where requests are forwarded
-rm = '5/m' # default rate limiter (for server and all_path)
-rrm = '1/m'
-queue=false # True - queued and sent code; False - client will wait; False by default
-all_path = true # for routes not listed in the config, use the server settings
+address = "127.0.0.1:8000" # Target backend address
+rm = "15/m"                # Max incoming client requests
+rrm = "10/m"               # Max requests forwarded to backend
+queue = true               # Default queue mode (sync)
+all_path = true            # Fallback for unlisted routes
 
-[[route]] # use this directive to define a route
+[[route]]
 path = "/api/v1/products"
-rm = "5/m" # how many requests will be accepted
-rrm = "1/m" # how many requests will actually reach the server
-queue=false 
-code=202 # also default code for queue
+rm = "20/m"
+rrm = "5/m"
+queue = true
 active = true
 
 [[route]]
-path = "/api/v1/users"
-rm = "10/m"
-rrm = '1/m' # if omitted entirely, all requests bypass rrm immediately
-active = false # whether to serve this API?
+path = "/api/v1/webhooks"
+rm = "100/m"
+rrm = "10/m"
+queue = false              # Async mode (returns 202 Accepted)
+code = 202
+active = true
 ```
 
-## Roadmap
+---
+
+## 🗺️ Roadmap
 
 ![Aegis roadmap](./docs/roadmap.png)
+
+---
+
+## 📄 License
+
+[MIT License](./LICENSE) © 2026 doaks
+) for more information.
+
+Copyright (c) 2026 doaks

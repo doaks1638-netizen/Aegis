@@ -1,12 +1,11 @@
 [project]
 name = "aegis"
 version = "0.1.0"
-description = "Add your description here"
+description = "Protect heavy backend APIs (LLMs, ML models, scraping) from traffic spikes with 2 stage rate limiting and Redis queuing."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.139.2",
-    "gunicorn>=26.0.0",
     "httpx>=0.28.1",
     "loguru>=0.7.3",
     "pydantic-settings>=2.14.2",
