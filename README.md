@@ -28,6 +28,8 @@ queue=false # True - queued and sent code; False - client will wait; False by de
 all_path = true # for routes not listed in the config, use the server settings
 behind_nginx = false # This is needed to correctly extract the IP from the request. If true, you need to uncomment nginx in docker-compose.yaml for it to work correctly.
 max_wait_time = 62.5 # Measured in seconds. If the wait time is more than max_wait_time seconds, the request is immediately sent with code 429 and a clear message. Please note that we do not wait max_wait_time seconds, but it is calculated using the formula thanks to the fixed RPS
+max_failures = 5 # How many consecutive errors does it take to block on cb_cooldown sec
+sec_cooldown = 30.5 # Number of seconds for the block. If `max_failures` is specified but `sec_cooldown` is not specified, the default is 5
 
 [[route]] # use this directive to define a route
 path = "/api/v1/products"
@@ -43,6 +45,8 @@ path = "/api/v1/users"
 rm = "10/m"
 rrm = '1/m' # if omitted entirely, all requests bypass rrm immediately
 active = false # whether to serve this API?
+max_failures = 5
+sec_cooldown = 30.5
 ```
 
 ## Deployment with NGINX

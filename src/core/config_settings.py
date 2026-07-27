@@ -16,6 +16,8 @@ class Route(BaseModel):
     active: bool = True
     queue: bool = False
     max_wait_time: float | None = None
+    max_failures: int | None
+    sec_cooldown: float | None
 
 
 class ConfigSettings(BaseSettings):
@@ -39,6 +41,8 @@ class ConfigSettings(BaseSettings):
     all_path: bool
     behind_nginx: bool
     server_max_wait_time: float | None
+    server_max_failures: int | None
+    server_sec_cooldown: float
 
 
 config_settings = ConfigSettings(
@@ -51,6 +55,8 @@ config_settings = ConfigSettings(
     all_path=config["settings"].get("all_path", False),
     behind_nginx=config["settings"].get("behind_nginx", False),
     server_max_wait_time=config["settings"].get("max_wait_time", None),
+    server_max_failures=config["settings"].get("max_failures", None),
+    server_sec_cooldown=config["settings"].get("sec_cooldown", 5),
 )
 routes = [Route.model_validate(route) for route in config.get("route", [])]
 router_paths = {router.path: router for router in routes}

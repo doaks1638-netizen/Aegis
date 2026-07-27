@@ -38,6 +38,9 @@ async def handler_func(request: Request):
     if status == Action.PROXY:
         logger.info("Proxy the request")
         return await proxy_pass(request=request)
+    if status == Action.ERROR:
+        logger.error("The number of errors has exceeded the limit! Sending code 503.")
+        raise HTTPException(503, detail="Server error. Please try again later.")
     else:
         _, general, queue_need, is_overloaded = status
     if is_overloaded:

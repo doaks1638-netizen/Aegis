@@ -65,6 +65,7 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
 async def evaluate(request: Request):
     path = request.url.path
     redis: Redis = request.app.state.redis
+    lock_exc_key = f"exc:lock:{path}"
     while path != "":
         if path in router_paths:
             if await limit_exceeded(request, path):
@@ -73,6 +74,9 @@ async def evaluate(request: Request):
             rrm = current.rrm if current.rrm is not None else config_settings.server_rrm
             if rrm is None or current.rrm == current.rm:
                 return Action.PROXY
+            if (await redis.get(lock_exc_key)) is not None:
+                return Action.ERROR
+
             if (
                 current.max_wait_time is not None
                 or config_settings.server_max_wait_time is not None
@@ -98,6 +102,8 @@ async def evaluate(request: Request):
             return Action.BLOCK
         if not config_settings.server_rrm:
             return Action.PROXY
+        if (await redis.get(lock_exc_key)) is not None:
+            return Action.ERROR
         if config_settings.server_max_wait_time is not None:
             count, rps = sec_of_limit(config_settings.server_rrm)
             tact = rps / count

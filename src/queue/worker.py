@@ -8,6 +8,7 @@ from loguru import logger
 from redis.asyncio import Redis
 
 from src.api import proxy_pass_dict
+from src.core import config_settings, router_paths
 from src.rm import sec_of_limit
 
 
@@ -16,8 +17,11 @@ async def worker_task(app: FastAPI, path: str | None, rrm: str):
     redis: Redis = app.state.redis
     count, rps = sec_of_limit(rrm)
     tact = rps / count
-    key = f"queue:{path}" if path is not None else "queue:general"
-    last_modifed_key = f"last_modifed:worker_{path if path is not None else 'general'}"  # last-changed key for each worker
+    path = path if path is not None else "general"
+    key = f"queue:{path}"
+    last_modifed_key = f"last_modifed:worker_{path}"  # last-changed key for each worker
+    exc_key = f"exc:{path}"
+    lock_exc_key = f"exc:lock:{path}"
     logger.info("The worker has initialized.")
     while True:
         try:
@@ -39,7 +43,35 @@ async def worker_task(app: FastAPI, path: str | None, rrm: str):
                     continue
                 result = json.loads(result[1])
                 logger.info("Received a request, proxying it.")
-                response = await proxy_pass_dict(data=result["request"], app=app)
+                response, exc_flag = await proxy_pass_dict(
+                    data=result["request"], app=app
+                )
+                if exc_flag:
+                    if path == "general":
+                        sec_cooldown = config_settings.server_sec_cooldown
+                        max_failures = config_settings.server_max_failures
+                    elif (
+                        path_sec_cooldown := router_paths[path].sec_cooldown
+                    ) is not None and (
+                        path_max_failures := router_paths[path].max_failures
+                    ) is not None:
+                        sec_cooldown = path_sec_cooldown
+                        max_failures = path_max_failures
+                    elif (
+                        path_max_failures := router_paths[path].max_failures
+                    ) is not None:
+                        sec_cooldown = config_settings.server_sec_cooldown
+                        max_failures = path_max_failures
+                    else:
+                        max_failures = None
+                        sec_cooldown = 0
+                    if max_failures is not None:
+                        fails = await redis.incr(exc_key)
+                        if fails >= max_failures:
+                            await redis.set(lock_exc_key, "1", ex=int(sec_cooldown))
+                            await redis.delete(exc_key)
+                else:
+                    await redis.delete(exc_key)
                 if (lock_key := result["lock"]) is not None:
                     logger.info("The query result needs to responce to client")
                     await redis.lpush(lock_key, json.dumps(response))
