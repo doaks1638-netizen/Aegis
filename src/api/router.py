@@ -57,10 +57,10 @@ async def handler_func(request: Request):
         try:
             result = await redis.blpop(lock_key, timeout=5)
         except redis_exc.TimeoutError:  # Called if the socket has gone down.
-            logger.error("Failed to complete the task")
+            logger.error("Socket has gone down")
             raise HTTPException(504, detail="Failed to get response!")
         if result is None:
-            logger.error("Failed to complete the task")
+            logger.error("The worker didn't have time to put the result in the lock")
             raise HTTPException(504, detail="Failed to get response!")
         _, value = result
         return Response(**json.loads(value))

@@ -65,9 +65,9 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
 async def evaluate(request: Request):
     path = request.url.path
     redis: Redis = request.app.state.redis
-    lock_exc_key = f"exc:lock:{path}"
     while path != "":
         if path in router_paths:
+            lock_exc_key = f"exc:lock:{path}"
             if await limit_exceeded(request, path):
                 return Action.BLOCK
             current = router_paths[path]
@@ -98,6 +98,7 @@ async def evaluate(request: Request):
             )  # True - matched path, take specific worker
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
     if config_settings.all_path:
+        lock_exc_key = "exc:lock:general"
         if await limit_exceeded(request, "", all_path=True):
             return Action.BLOCK
         if not config_settings.server_rrm:
