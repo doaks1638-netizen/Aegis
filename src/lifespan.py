@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 
 import redis.asyncio as asyncioredis
 from fastapi import FastAPI
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 
 from src.core import config_settings, routes, settings
 from src.queue import worker_task
@@ -20,7 +20,8 @@ async def lifespan(app: FastAPI):
         app.state.client = client
         app.state.redis = redis
         for route in routes:
-            asyncio.create_task(worker_task(app, route.path, route.rrm))
+            if isinstance(route.rrm, str):
+                asyncio.create_task(worker_task(app, route.path, route.rrm))
         if (
             config_settings.all_path
             and config_settings.server_rm

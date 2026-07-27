@@ -11,10 +11,10 @@ from src.api import proxy_pass_dict
 from src.rm import sec_of_limit
 
 
-async def worker_task(app: FastAPI, path: str, rrm: str):
+async def worker_task(app: FastAPI, path: str | None, rrm: str):
     redis: Redis = app.state.redis
-    count, rrm = sec_of_limit(rrm)
-    tact = rrm / count
+    count, rps = sec_of_limit(rrm)
+    tact = rps / count
     key = f"queue:{path}" if path is not None else "queue:general"
     last_modifed_key = f"last_modifed:worker_{uuid4()}"
     logger.info("The worker has initialized.")
