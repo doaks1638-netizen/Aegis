@@ -29,9 +29,12 @@ def sec_of_limit(limit: str):
 
 
 async def limit_exceeded(request: Request, path: str, all_path: bool = False):
-    redis: Redis = request.app.state.redis
-    client_ip = request.client.host if request.client else None
     request_time = time.time()
+    redis: Redis = request.app.state.redis
+    if config_settings.behind_nginx:
+        client_ip = request.headers.get("x-real-ip", None)
+    else:
+        client_ip = request.client.host if request.client else None
     if not client_ip:
         logger.error(
             "Unknown IP type, please check that the service does not have NGINX in front of it."
@@ -50,13 +53,13 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
     if all_path:
         key = "limit:all_path"
         rm = config_settings.server_rm
-        await checker(rm, key)
+        return await checker(rm, key)
     else:
         key = f"limit:{path}"
         rm = router_paths[path].rm
         if not rm:
             rm = config_settings.server_rm
-        await checker(rm, key)
+        return await checker(rm, key)
 
 
 async def evaluate(request: Request):

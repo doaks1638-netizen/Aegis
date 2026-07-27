@@ -19,13 +19,22 @@ async def lifespan(app: FastAPI):
     ):
         app.state.client = client
         app.state.redis = redis
+        tasks: list[asyncio.Task] = []
         for route in routes:
             if isinstance(route.rrm, str):
-                asyncio.create_task(worker_task(app, route.path, route.rrm))
+                tasks.append(
+                    asyncio.create_task(worker_task(app, route.path, route.rrm))
+                )
         if (
             config_settings.all_path
             and config_settings.server_rm
             and config_settings.server_rrm
         ):
-            asyncio.create_task(worker_task(app, None, config_settings.server_rrm))
+            tasks.append(
+                asyncio.create_task(worker_task(app, None, config_settings.server_rrm))
+            )
         yield
+        for task in tasks:
+            task.cancel()
+
+        await asyncio.gather(*tasks, return_exceptions=True)

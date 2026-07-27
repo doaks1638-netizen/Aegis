@@ -4,3 +4,4 @@ rm = '15/m'
 rrm = '10/m'
 queue = true
 all_path = true
+behind_nginx = false

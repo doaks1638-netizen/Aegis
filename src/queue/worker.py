@@ -12,11 +12,12 @@ from src.rm import sec_of_limit
 
 
 async def worker_task(app: FastAPI, path: str | None, rrm: str):
+    # Each worker works with one queue, race-condition is not possible
     redis: Redis = app.state.redis
     count, rps = sec_of_limit(rrm)
     tact = rps / count
     key = f"queue:{path}" if path is not None else "queue:general"
-    last_modifed_key = f"last_modifed:worker_{uuid4()}"
+    last_modifed_key = f"last_modifed:worker_{path if path is not None else 'general'}"  # last-changed key for each worker
     logger.info("The worker has initialized.")
     while True:
         try:
@@ -29,7 +30,7 @@ async def worker_task(app: FastAPI, path: str | None, rrm: str):
                 - float(
                     last_modifed_key_value
                     if last_modifed_key_value is not None
-                    else tact + 10
+                    else tact + 1
                 )
             ) > tact:
                 logger.info("Great! We can get the value for the request.")
@@ -42,7 +43,10 @@ async def worker_task(app: FastAPI, path: str | None, rrm: str):
                 if (lock_key := result["lock"]) is not None:
                     logger.info("The query result needs to responce to client")
                     await redis.lpush(lock_key, json.dumps(response))
-                    await redis.set(last_modifed_key, time.time())
+                    await redis.expire(lock_key, 10)
+                await redis.set(
+                    last_modifed_key, time.time(), ex=max(60, int(tact * 2))
+                )
                 logger.info("The query result do not needs to responce to client")
             else:
                 logger.info("To try the next request, wait.")
