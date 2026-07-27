@@ -1,7 +1,7 @@
 import json
 
 from fastapi import Request
-from redis import Redis
+from redis.asyncio import Redis
 
 
 async def put_task(request: Request, path: str, general: bool, value: dict):

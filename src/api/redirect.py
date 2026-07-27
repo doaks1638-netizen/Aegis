@@ -26,7 +26,7 @@ async def proxy_pass(request: Request) -> Response:
     )
 
 
-async def proxy_pass_dict(data: dict, app: FastAPI) -> dict:
+async def proxy_pass_dict(data: dict, app: FastAPI) -> tuple[dict, bool]:
     client: AsyncClient = app.state.client
     target_host, target_port = config_settings.address.split(":")
     try:
@@ -42,7 +42,7 @@ async def proxy_pass_dict(data: dict, app: FastAPI) -> dict:
         return {
             "content": f"Gateway Timeout - {e}",
             "status_code": 504,
-        }
+        }, True
     headers = dict(response.headers)
 
     # remove headers that could break the response (since response.text is already decoded)
@@ -53,4 +53,4 @@ async def proxy_pass_dict(data: dict, app: FastAPI) -> dict:
         "content": response.text,
         "headers": headers,
         "media_type": response.headers.get("content-type"),
-    }
+    }, not response.status_code < 500

@@ -1,11 +1,11 @@
 import json
 from uuid import uuid4
 
+import redis.exceptions as redis_exc
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from loguru import logger
-from redis import Redis
-import redis.exceptions as redis_exc
+from redis.asyncio import Redis
 
 from src.core import config_settings
 from src.lifespan import lifespan
@@ -38,8 +38,15 @@ async def handler_func(request: Request):
     if status == Action.PROXY:
         logger.info("Proxy the request")
         return await proxy_pass(request=request)
+    if status == Action.ERROR:
+        logger.error("The number of errors has exceeded the limit! Sending code 503.")
+        raise HTTPException(503, detail="Server error. Please try again later.")
     else:
-        _, general, queue_need = status
+        _, general, queue_need, is_overloaded = status
+    if is_overloaded:
+        raise HTTPException(
+            429, detail="The server is overloaded, please try your request later."
+        )
     if queue_need:  # TODO: rename to wait_need
         lock_key = f"key:{uuid4()}"
         value = {"lock": lock_key, "request": await request_to_dict(request=request)}
@@ -50,10 +57,10 @@ async def handler_func(request: Request):
         try:
             result = await redis.blpop(lock_key, timeout=5)
         except redis_exc.TimeoutError:  # Called if the socket has gone down.
-            logger.error("Failed to complete the task")
+            logger.error("Socket has gone down")
             raise HTTPException(504, detail="Failed to get response!")
         if result is None:
-            logger.error("Failed to complete the task")
+            logger.error("The worker didn't have time to put the result in the lock")
             raise HTTPException(504, detail="Failed to get response!")
         _, value = result
         return Response(**json.loads(value))
