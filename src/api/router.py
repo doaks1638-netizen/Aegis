@@ -1,11 +1,11 @@
 import json
 from uuid import uuid4
 
+import redis.exceptions as redis_exc
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from loguru import logger
-from redis import Redis
-import redis.exceptions as redis_exc
+from redis.asyncio import Redis
 
 from src.core import config_settings
 from src.lifespan import lifespan

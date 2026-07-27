@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI
 from loguru import logger
-from redis import Redis
+from redis.asyncio import Redis
 
 from src.api import proxy_pass_dict
 from src.rm import sec_of_limit

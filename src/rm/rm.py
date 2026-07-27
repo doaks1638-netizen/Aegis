@@ -1,7 +1,7 @@
 import time
 
 from fastapi import Request
-from redis import Redis
+from redis.asyncio import Redis
 
 from src.core import config_settings, router_paths
 
