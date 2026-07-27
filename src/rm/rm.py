@@ -1,9 +1,11 @@
 import time
 
 from fastapi import Request
+from loguru import logger
 from redis.asyncio import Redis
 
 from src.core import config_settings, router_paths
+from src.exceptions import RMTypeErr, UnknownIPErr
 
 from .rm_enum import Action
 
@@ -21,7 +23,8 @@ def sec_of_limit(limit: str):
         case "y":
             rm = 12960000
         case _:
-            raise TypeError("Such measurement units are not supported")
+            logger.error("Such measurement units are not supported!!!")
+            raise RMTypeErr(limit)
     return int(limit.split("/")[0]), int(rm)
 
 
@@ -30,7 +33,10 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
     client_ip = request.client.host if request.client else None
     request_time = time.time()
     if not client_ip:
-        raise TypeError("Unknown IP")
+        logger.error(
+            "Unknown IP type, please check that the service does not have NGINX in front of it."
+        )
+        raise UnknownIPErr(client_ip)
 
     async def checker(rm, key):
         if not rm:
