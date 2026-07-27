@@ -27,6 +27,7 @@ rrm = '1/m'
 queue=false # True - queued and sent code; False - client will wait; False by default
 all_path = true # for routes not listed in the config, use the server settings
 behind_nginx = false # This is needed to correctly extract the IP from the request. If true, you need to uncomment nginx in docker-compose.yaml for it to work correctly.
+max_wait_time = 62.5 # Measured in seconds. If the wait time is more than max_wait_time seconds, the request is immediately sent with code 429 and a clear message. Please note that we do not wait max_wait_time seconds, but it is calculated using the formula thanks to the fixed RPS
 
 [[route]] # use this directive to define a route
 path = "/api/v1/products"
@@ -35,6 +36,7 @@ rrm = "1/m" # how many requests will actually reach the server
 queue=false
 code=202 # also default code for queue
 active = true
+max_wait_time = 16.05
 
 [[route]]
 path = "/api/v1/users"

@@ -64,31 +64,53 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
 
 async def evaluate(request: Request):
     path = request.url.path
+    redis: Redis = request.app.state.redis
     while path != "":
         if path in router_paths:
             if await limit_exceeded(request, path):
                 return Action.BLOCK
             current = router_paths[path]
-            if current.rm == current.rrm or (
-                not current.rrm and current.rm == config_settings.server_rrm
-            ):
+            rrm = current.rrm if current.rrm is not None else config_settings.server_rrm
+            if rrm is None or current.rrm == current.rm:
                 return Action.PROXY
+            if (
+                current.max_wait_time is not None
+                or config_settings.server_max_wait_time is not None
+            ):
+                count, rps = sec_of_limit(rrm)
+                tact = rps / count
+                is_overloaded = ((await redis.llen(f"queue:{path}")) * tact) > (  # pyright: ignore[reportOperatorIssue]
+                    current.max_wait_time
+                    if current.max_wait_time is not None
+                    else config_settings.server_max_wait_time
+                )
             else:
-                return (
-                    Action.GO,
-                    True,
-                    router_paths[path].queue,
-                )  # True - matched path, take specific worker
+                is_overloaded = False
+            return (
+                Action.GO,
+                True,
+                router_paths[path].queue,
+                is_overloaded,
+            )  # True - matched path, take specific worker
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
     if config_settings.all_path:
         if await limit_exceeded(request, "", all_path=True):
             return Action.BLOCK
         if not config_settings.server_rrm:
             return Action.PROXY
+        if config_settings.server_max_wait_time is not None:
+            count, rps = sec_of_limit(config_settings.server_rrm)
+            tact = rps / count
+            is_overloaded = (
+                (await redis.llen("queue:general")) * tact
+            ) > config_settings.server_max_wait_time
+        else:
+            is_overloaded = False
         return (
             Action.GO,
             False,
             config_settings.server_queue,
+            is_overloaded,
         )  # False - take general worker
     else:
         return Action.PROXY

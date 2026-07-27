@@ -39,7 +39,11 @@ async def handler_func(request: Request):
         logger.info("Proxy the request")
         return await proxy_pass(request=request)
     else:
-        _, general, queue_need = status
+        _, general, queue_need, is_overloaded = status
+    if is_overloaded:
+        raise HTTPException(
+            429, detail="The server is overloaded, please try your request later."
+        )
     if queue_need:  # TODO: rename to wait_need
         lock_key = f"key:{uuid4()}"
         value = {"lock": lock_key, "request": await request_to_dict(request=request)}

@@ -5,3 +5,4 @@ rrm = '10/m'
 queue = true
 all_path = true
 behind_nginx = false
+max_wait_time = 60.0
