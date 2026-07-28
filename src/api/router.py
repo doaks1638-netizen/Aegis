@@ -51,7 +51,7 @@ async def handler_func(request: Request):
         lock_key = f"key:{uuid4()}"
         value = {"lock": lock_key, "request": await request_to_dict(request=request)}
         await put_task(
-            request=request, path=request.url.path, general=general, value=value
+            request=request, path=request.url.path, general=general, value=value  # pyright: ignore[reportArgumentType]
         )
         logger.info("We are waiting for the lock to be removed.")
         try:
@@ -69,7 +69,7 @@ async def handler_func(request: Request):
         value = {"lock": None, "request": await request_to_dict(request=request)}
         logger.info("We put it in the queue and return the code")
         await put_task(
-            request=request, path=request.url.path, general=general, value=value
+            request=request, path=request.url.path, general=general, value=value  # pyright: ignore[reportArgumentType]
         )
         return JSONResponse(
             status_code=config_settings.response_code,

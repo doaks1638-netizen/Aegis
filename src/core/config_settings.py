@@ -18,6 +18,7 @@ class Route(BaseModel):
     max_wait_time: float | None = None
     max_failures: int | None
     sec_cooldown: float | None
+    shaper_strategy: bool = False
 
 
 class ConfigSettings(BaseSettings):
@@ -43,6 +44,7 @@ class ConfigSettings(BaseSettings):
     server_max_wait_time: float | None
     server_max_failures: int | None
     server_sec_cooldown: float
+    server_shaper_strategy: bool
 
 
 config_settings = ConfigSettings(
@@ -57,6 +59,7 @@ config_settings = ConfigSettings(
     server_max_wait_time=config["settings"].get("max_wait_time", None),
     server_max_failures=config["settings"].get("max_failures", None),
     server_sec_cooldown=config["settings"].get("sec_cooldown", 5),
+    server_shaper_strategy=config["settings"].get("shaper_strategy", False),
 )
 routes = [Route.model_validate(route) for route in config.get("route", [])]
 router_paths = {router.path: router for router in routes}
