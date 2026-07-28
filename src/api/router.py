@@ -1,7 +1,6 @@
 import json
 from uuid import uuid4
 
-import redis.exceptions as redis_exc
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from loguru import logger
@@ -23,7 +22,7 @@ async def request_to_dict(request: Request) -> dict:
         "url": str(request.url),
         "headers": dict(request.headers),
         # Decode bytes into a standard string (works for JSON and text)
-        "body": (await request.body()).decode("utf-8"),
+        "body": (await request.body()).decode("utf-8"),  # pyright: ignore[reportAttributeAccessIssue]
     }
 
 
@@ -51,26 +50,29 @@ async def handler_func(request: Request):
         lock_key = f"key:{uuid4()}"
         value = {"lock": lock_key, "request": await request_to_dict(request=request)}
         await put_task(
-            request=request, path=request.url.path, general=general, value=value
+            request=request,
+            path=request.url.path,
+            general=general,
+            value=value,  # pyright: ignore[reportArgumentType]
         )
         logger.info("We are waiting for the lock to be removed.")
-        try:
-            result = await redis.blpop(lock_key, timeout=5)
-        except redis_exc.TimeoutError:  # Called if the socket has gone down.
-            logger.error("Socket has gone down")
-            raise HTTPException(504, detail="Failed to get response!")
-        if result is None:
-            logger.error("The worker didn't have time to put the result in the lock")
-            raise HTTPException(504, detail="Failed to get response!")
-        _, value = result
+        async with redis.client() as redis_client:
+            logger.info("Waiting for a response from Redis")
+            result = await redis_client.blpop(lock_key)
+        _, value = result  # pyright: ignore[reportGeneralTypeIssues]
+        logger.info("We send a request to the client")
         return Response(**json.loads(value))
 
     else:
         value = {"lock": None, "request": await request_to_dict(request=request)}
         logger.info("We put it in the queue and return the code")
         await put_task(
-            request=request, path=request.url.path, general=general, value=value
+            request=request,
+            path=request.url.path,
+            general=general,
+            value=value,  # pyright: ignore[reportArgumentType]
         )
+        logger.info("We send a request to the client")
         return JSONResponse(
             status_code=config_settings.response_code,
             content="Data successfully received. Processing will be finished soon!",

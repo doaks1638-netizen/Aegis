@@ -37,11 +37,9 @@ async def worker_task(app: FastAPI, path: str | None, rrm: str):
                     else tact + 1
                 )
             ) > tact:
-                logger.info("Great! We can get the value for the request.")
-                result = await redis.brpop(key, timeout=4.9)
-                if result is None:
-                    continue
-                result = json.loads(result[1])
+                async with redis.client() as redis_client:
+                    result = await redis_client.brpop(key)
+                result = json.loads(result[1])  # pyright: ignore[reportOptionalSubscript]
                 logger.info("Received a request, proxying it.")
                 response, exc_flag = await proxy_pass_dict(
                     data=result["request"], app=app

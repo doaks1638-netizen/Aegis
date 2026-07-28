@@ -46,17 +46,18 @@ Units: `s` (seconds), `m` (minutes), `h` (hours), `d` (days), `y` (years).
 
 ```toml
 [settings]
-address = "127.0.0.1:8000"  # Target backend address
-rm = "15/m"                  # Max incoming client requests (rate limit)
-rrm = "10/m"                 # Max requests forwarded to backend (rate throttle)
-queue = true                 # Default queue mode (true = sync, false = async)
-all_path = true              # Fallback for unlisted routes
-behind_nginx = false         # Extract IP from X-Real-IP when behind a reverse proxy
-max_wait_time = 60.0         # Max queue wait time in seconds (predictive load shedding)
-max_failures = 5             # Consecutive 5xx errors to trigger Circuit Breaker
-sec_cooldown = 30.5          # Circuit Breaker cooldown duration in seconds
+address = "127.0.0.1:8000" # Address where requests are forwarded
+rm = "5/m" # Default rate limiter (for server and all_path)
+rrm = "1/m" # Default rate throttle for backend
+queue = false # Default queue mode (true = sync connection hold, false = async 202)
+all_path = true # For routes not listed in config, use server settings
+behind_nginx = false # Extract client IP from X-Real-IP header when behind NGINX
+max_wait_time = 62.5 # Max calculated wait time in seconds before rejecting with 429
+max_failures = 5 # Consecutive 5xx errors to trigger Circuit Breaker
+sec_cooldown = 30.5 # Cooldown duration in seconds when Circuit Breaker trips
+shaper_strategy = true # When enabled, rm is disabled and all requests are queued up to rrm
 
-[[route]]
+[[route]] # Route-specific settings
 path = "/api/v1/products"
 rm = "20/m"
 rrm = "5/m"
@@ -65,13 +66,13 @@ active = true
 max_wait_time = 16.05
 max_failures = 5
 sec_cooldown = 30.5
+shaper_strategy = true
 
 [[route]]
 path = "/api/v1/webhooks"
 rm = "100/m"
 rrm = "10/m"
-queue = false                # Async mode — returns 202 immediately
-code = 202
+queue = false
 active = true
 ```
 

@@ -68,11 +68,15 @@ async def evaluate(request: Request):
     while path != "":
         if path in router_paths:
             lock_exc_key = f"exc:lock:{path}"
-            if await limit_exceeded(request, path):
-                return Action.BLOCK
             current = router_paths[path]
+            shaper = current.shaper_strategy or config_settings.server_shaper_strategy
+            if not shaper and await limit_exceeded(request, path):
+                return Action.BLOCK
             rrm = current.rrm if current.rrm is not None else config_settings.server_rrm
-            if rrm is None or current.rrm == current.rm:
+            rm = current.rm if current.rm is not None else config_settings.server_rm
+            if rrm is None or (
+                rm == rrm and not shaper
+            ):
                 return Action.PROXY
             if (await redis.get(lock_exc_key)) is not None:
                 return Action.ERROR
@@ -99,7 +103,9 @@ async def evaluate(request: Request):
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
     if config_settings.all_path:
         lock_exc_key = "exc:lock:general"
-        if await limit_exceeded(request, "", all_path=True):
+        if not config_settings.server_shaper_strategy and await limit_exceeded(
+            request, "", all_path=True
+        ):
             return Action.BLOCK
         if not config_settings.server_rrm:
             return Action.PROXY

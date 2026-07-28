@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
     async with (
         AsyncClient() as client,
         asyncioredis.from_url(
-            settings.get_redis_url(), decode_responses=True, socket_timeout=30.0
+            settings.get_redis_url(), decode_responses=True, socket_timeout=None
         ) as redis,
     ):
         app.state.client = client
