@@ -30,7 +30,7 @@ services:
       dockerfile: ./Dockerfile
     container_name: aegis
     restart: unless-stopped
-    command: uv run gunicorn src.api.router:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:6378
+    command: uv run uvicorn src.api.router.app --host 0.0.0.0 --port 6378 --loop uvloop
     ports:
       - "6378:6378"
     environment:

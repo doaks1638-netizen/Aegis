@@ -23,7 +23,7 @@ async def request_to_dict(request: Request) -> dict:
         "url": str(request.url),
         "headers": dict(request.headers),
         # Decode bytes into a standard string (works for JSON and text)
-        "body": (await request.body()).decode("utf-8"),
+        "body": (await request.body()).decode("utf-8"),  # pyright: ignore[reportAttributeAccessIssue]
     }
 
 
