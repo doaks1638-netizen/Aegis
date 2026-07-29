@@ -5,10 +5,9 @@ from redis.asyncio import Redis
 
 from src.core import ags_logger as logger
 from src.core import config_settings, router_paths
+from src.enums import Action, ReqLStrategy, RouteScope
 from src.exceptions import RMTypeErr, UnknownIPErr
 from src.models import ActionGO
-
-from .rm_enum import Action
 
 
 def sec_of_limit(limit: str):
@@ -74,11 +73,11 @@ async def evaluate(request: Request):
             lock_exc_key = f"exc:lock:{path}"
             current = router_paths[path]
             shaper = current.shaper_strategy or config_settings.server_shaper_strategy
-            if not shaper and await limit_exceeded(request, path):
+            if shaper != ReqLStrategy.SHAPER and await limit_exceeded(request, path):
                 return Action.BLOCK
             rrm = current.rrm if current.rrm is not None else config_settings.server_rrm
             rm = current.rm if current.rm is not None else config_settings.server_rm
-            if rrm is None or (rm == rrm and not shaper):
+            if rrm is None or (rm == rrm and shaper != ReqLStrategy.SHAPER):
                 return Action.PROXY
             if (await redis.get(lock_exc_key)) is not None:
                 return Action.ERROR
@@ -89,23 +88,32 @@ async def evaluate(request: Request):
             ):
                 count, rps = sec_of_limit(rrm)
                 tact = rps / count
-                is_overloaded = ((await redis.llen(f"queue:{path}")) * tact) > (  # pyright: ignore[reportOperatorIssue]
-                    current.max_wait_time
-                    if current.max_wait_time is not None
+                current_max_wait_time = current.max_wait_time
+                max_wait_time = (
+                    current_max_wait_time
+                    if current_max_wait_time is not None
                     else config_settings.server_max_wait_time
                 )
-            else:
-                is_overloaded = False
+                if (
+                    max_wait_time
+                    and ((await redis.llen(f"queue:{path}")) * tact) > max_wait_time
+                ):
+                    return Action.OVERLOADED
+            route_wait = router_paths[path].wait
             return ActionGO(
-                general=False,
-                wait_need=router_paths[path].wait_need,
-                is_overloaded=is_overloaded,
+                general=RouteScope.SPECIFIC,
+                wait=(
+                    route_wait
+                    if route_wait is not None
+                    else config_settings.server_wait
+                ),
             )
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
     if config_settings.all_path:
         lock_exc_key = "exc:lock:general"
-        if not config_settings.server_shaper_strategy and await limit_exceeded(
-            request, "", all_path=True
+        if (
+            config_settings.server_shaper_strategy != ReqLStrategy.SHAPER
+            and await limit_exceeded(request, "", all_path=True)
         ):
             return Action.BLOCK
         if not config_settings.server_rrm:
@@ -115,15 +123,13 @@ async def evaluate(request: Request):
         if config_settings.server_max_wait_time is not None:
             count, rps = sec_of_limit(config_settings.server_rrm)
             tact = rps / count
-            is_overloaded = (
+            if (
                 (await redis.llen("queue:general")) * tact
-            ) > config_settings.server_max_wait_time
-        else:
-            is_overloaded = False
+            ) > config_settings.server_max_wait_time:
+                return Action.OVERLOADED
         return ActionGO(
-            general=True,
-            wait_need=config_settings.server_wait_need,
-            is_overloaded=is_overloaded,
+            general=RouteScope.GLOBAL,
+            wait=config_settings.server_wait,
         )
     else:
         return Action.PROXY

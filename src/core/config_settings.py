@@ -4,6 +4,8 @@ from typing import Annotated
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
 
+from src.enums import ReqLStrategy, WaitStrategy
+
 from .config_parser import config
 
 RM = Annotated[str | None, Field(pattern=r"^\d+\/[smhdy]$", default=None)]
@@ -14,11 +16,11 @@ class Route(BaseModel):
     rm: RM
     rrm: RM
     active: bool = True
-    wait_need: bool = False
+    wait: WaitStrategy | None = None
     max_wait_time: float | None = None
     max_failures: int | None
     sec_cooldown: float | None
-    shaper_strategy: bool = False
+    shaper_strategy: ReqLStrategy | None = None
 
 
 class ConfigSettings(BaseSettings):
@@ -37,14 +39,14 @@ class ConfigSettings(BaseSettings):
 
     server_rm: RM
     server_rrm: RM
-    server_wait_need: bool
+    server_wait: WaitStrategy
 
     all_path: bool
     behind_nginx: bool
     server_max_wait_time: float | None
     server_max_failures: int | None
     server_sec_cooldown: float
-    server_shaper_strategy: bool
+    server_shaper_strategy: ReqLStrategy
 
 
 config_settings = ConfigSettings(
@@ -53,13 +55,13 @@ config_settings = ConfigSettings(
     address=config["settings"]["address"],
     server_rm=config["settings"].get("rm", None),
     server_rrm=config["settings"].get("rrm", None),
-    server_wait_need=config["settings"].get("wait_need", False),
+    server_wait=config["settings"].get("wait", WaitStrategy.SLOW),
     all_path=config["settings"].get("all_path", False),
     behind_nginx=config["settings"].get("behind_nginx", False),
     server_max_wait_time=config["settings"].get("max_wait_time", None),
     server_max_failures=config["settings"].get("max_failures", None),
     server_sec_cooldown=config["settings"].get("sec_cooldown", 5),
-    server_shaper_strategy=config["settings"].get("shaper_strategy", False),
+    server_shaper_strategy=config["settings"].get("shaper_strategy", ReqLStrategy.POLICER_LIMITER),
 )
 routes = [Route.model_validate(route) for route in config.get("route", [])]
 router_paths = {router.path: router for router in routes}

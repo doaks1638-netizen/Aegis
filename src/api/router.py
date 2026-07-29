@@ -8,10 +8,11 @@ from redis.asyncio import Redis
 
 from src.core import ags_logger as logger
 from src.core import config_settings
+from src.enums import Action
 from src.lifespan import lifespan
-from src.models import ActionGO
+from src.models import ActionGO, WaitStrategy
 from src.queue import put_task
-from src.rm import Action, evaluate
+from src.rm import evaluate
 
 from .redirect import proxy_pass
 
@@ -45,11 +46,11 @@ async def handler_func(request: Request):
     if status == Action.ERROR:
         logger.error("The number of errors has exceeded the limit! Sending code 503.")
         raise HTTPException(503, detail="Server error. Please try again later.")
-    if status.is_overloaded:
+    if status == Action.OVERLOADED:
         raise HTTPException(
             429, detail="The server is overloaded, please try your request later."
         )
-    if status.wait_need:
+    if status.wait == WaitStrategy.SLOW:
         lock_key = f"key:{uuid4()}"
         value = {"lock": lock_key, "request": await request_to_dict(request=request)}
         await put_task(

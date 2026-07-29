@@ -24,19 +24,19 @@ sudo docker compose up --build
 address = "127.0.0.1:8000" # address where requests are forwarded
 rm = '5/m' # default rate limiter (for server and all_path)
 rrm = '1/m'
-wait_need = false # false - queued and sent code; true - client will wait; False by default
+wait = "fast" # fast - queued and sent code; slow - client will wait; slow by default
 all_path = true # for routes not listed in the config, use the server settings
 behind_nginx = false # This is needed to correctly extract the IP from the request. If true, you need to uncomment nginx in docker-compose.yaml for it to work correctly.
 max_wait_time = 62.5 # Measured in seconds. If the wait time is more than max_wait_time seconds, the request is immediately sent with code 429 and a clear message. Please note that we do not wait max_wait_time seconds, but it is calculated using the formula thanks to the fixed RPS
 max_failures = 5 # How many consecutive errors does it take to block on cb_cooldown sec
 sec_cooldown = 30.5 # Number of seconds for the block. If `max_failures` is specified but `sec_cooldown` is not specified, the default is 5
-shaper_strategy = true # When this flag is enabled, rm is disabled completely. All requests are queued (if rrm is present).
+shaper_strategy = "policer_limiter" # choose a strategy --> https://github.com/doaks1638-netizen/Aegis/wiki/Aegis-wiki
 
 [[route]] # use this directive to define a route
 path = "/api/v1/products"
 rm = "5/m" # how many requests will be accepted
 rrm = "1/m" # how many requests will actually reach the server
-wait_need = false
+wait = "slow"
 code = 202 # also default code for queue
 active = true
 max_wait_time = 16.05
@@ -48,7 +48,7 @@ rrm = '1/m' # if omitted entirely, all requests bypass rrm immediately
 active = false # whether to serve this API?
 max_failures = 5
 sec_cooldown = 30.5
-shaper_strategy = true
+shaper_strategy = "shaper"
 ```
 
 ## Deployment with NGINX

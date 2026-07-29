@@ -1,10 +1,9 @@
 from pydantic import BaseModel
 
-from src.rm import Action
+from src.enums import Action, RouteScope, WaitStrategy
 
 
 class ActionGO(BaseModel):
     method: Action = Action.GO
-    general: bool
-    wait_need: bool
-    is_overloaded: bool
+    general: RouteScope
+    wait: WaitStrategy
