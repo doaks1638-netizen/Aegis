@@ -6,7 +6,7 @@ from typing import Any
 def parse_toml_config(file_path: str | Path) -> dict[str, Any]:
     """Reads a TOML file and returns a raw dictionary without validation."""
     path = Path(file_path)
-    
+
     if not path.is_file():
         raise FileNotFoundError(f"Configuration file not found: {path.resolve()}")
 

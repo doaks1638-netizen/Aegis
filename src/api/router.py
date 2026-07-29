@@ -1,15 +1,18 @@
 import json
+import time
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
-from loguru import logger
 from redis.asyncio import Redis
 
+from src.core import ags_logger as logger
 from src.core import config_settings
+from src.enums import Action
 from src.lifespan import lifespan
+from src.models import ActionGO, WaitStrategy
 from src.queue import put_task
-from src.rm import Action, evaluate
+from src.rm import evaluate
 
 from .redirect import proxy_pass
 
@@ -28,9 +31,12 @@ async def request_to_dict(request: Request) -> dict:
 
 @app.api_route("/{full_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
 async def handler_func(request: Request):
-    logger.info(f"A request has arrived for - {request.url.path}")
+    start = time.perf_counter()
+    logger.info(
+        f"REQUEST - {request.url=} - {request.headers.get('x-real-ip', 'NO IP')} - {request.method}"
+    )
     redis: Redis = request.app.state.redis
-    status = await evaluate(request=request)
+    status: Action | ActionGO = await evaluate(request=request)
     if status == Action.BLOCK:
         logger.warning("Too many requests. Blocking")
         raise HTTPException(429, detail="Too Many Requests")
@@ -40,19 +46,17 @@ async def handler_func(request: Request):
     if status == Action.ERROR:
         logger.error("The number of errors has exceeded the limit! Sending code 503.")
         raise HTTPException(503, detail="Server error. Please try again later.")
-    else:
-        _, general, queue_need, is_overloaded = status
-    if is_overloaded:
+    if status == Action.OVERLOADED:
         raise HTTPException(
             429, detail="The server is overloaded, please try your request later."
         )
-    if queue_need:  # TODO: rename to wait_need
+    if status.wait == WaitStrategy.SLOW:
         lock_key = f"key:{uuid4()}"
         value = {"lock": lock_key, "request": await request_to_dict(request=request)}
         await put_task(
             request=request,
             path=request.url.path,
-            general=general,
+            general=status.general,
             value=value,  # pyright: ignore[reportArgumentType]
         )
         logger.info("We are waiting for the lock to be removed.")
@@ -60,7 +64,9 @@ async def handler_func(request: Request):
             logger.info("Waiting for a response from Redis")
             result = await redis_client.blpop(lock_key)
         _, value = result  # pyright: ignore[reportGeneralTypeIssues]
-        logger.info("We send a request to the client")
+        logger.info(
+            f"We send a request to the client. The response time was - {time.perf_counter() - start} sec."
+        )
         return Response(**json.loads(value))
 
     else:
@@ -69,7 +75,7 @@ async def handler_func(request: Request):
         await put_task(
             request=request,
             path=request.url.path,
-            general=general,
+            general=status.general,
             value=value,  # pyright: ignore[reportArgumentType]
         )
         logger.info("We send a request to the client")

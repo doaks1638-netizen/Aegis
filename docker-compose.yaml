@@ -38,6 +38,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    volumes:
+      - ./logs:/Aegis/logs
     networks:
       - external
       - internal
