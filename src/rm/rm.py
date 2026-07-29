@@ -46,9 +46,12 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
             return False
         count, rm = sec_of_limit(rm)
         key = f"{key}:{client_ip}"
-        await redis.zadd(key, {f"{request_time}": request_time})
-        await redis.zremrangebyscore(key, "-inf", time.time() - rm)
-        return await redis.zcard(key) > count
+        async with redis.pipeline(transaction=True) as pipe:
+            pipe.zadd(key, {f"{request_time}": request_time})
+            pipe.zremrangebyscore(key, "-inf", time.time() - rm)
+            pipe.zcard(key)
+            _, _, count_result = await pipe.execute()
+        return count_result > count
 
     if all_path:
         key = "limit:all_path"
