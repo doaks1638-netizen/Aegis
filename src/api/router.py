@@ -3,9 +3,9 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
-from loguru import logger
 from redis.asyncio import Redis
 
+from src.core import ags_logger as logger
 from src.core import config_settings
 from src.lifespan import lifespan
 from src.queue import put_task

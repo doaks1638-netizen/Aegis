@@ -1,9 +1,9 @@
 import time
 
 from fastapi import Request
-from loguru import logger
 from redis.asyncio import Redis
 
+from src.core import ags_logger as logger
 from src.core import config_settings, router_paths
 from src.exceptions import RMTypeErr, UnknownIPErr
 
