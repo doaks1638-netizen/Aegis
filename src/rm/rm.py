@@ -98,7 +98,7 @@ async def evaluate(request: Request):
                 is_overloaded = False
             return ActionGO(
                 general=False,
-                is_queue=router_paths[path].queue,
+                wait_need=router_paths[path].wait_need,
                 is_overloaded=is_overloaded,
             )
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
@@ -122,7 +122,7 @@ async def evaluate(request: Request):
             is_overloaded = False
         return ActionGO(
             general=True,
-            is_queue=config_settings.server_queue,
+            wait_need=config_settings.server_wait_need,
             is_overloaded=is_overloaded,
         )
     else:

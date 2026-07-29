@@ -14,7 +14,7 @@ class Route(BaseModel):
     rm: RM
     rrm: RM
     active: bool = True
-    queue: bool = False
+    wait_need: bool = False
     max_wait_time: float | None = None
     max_failures: int | None
     sec_cooldown: float | None
@@ -37,7 +37,7 @@ class ConfigSettings(BaseSettings):
 
     server_rm: RM
     server_rrm: RM
-    server_queue: bool
+    server_wait_need: bool
 
     all_path: bool
     behind_nginx: bool
@@ -53,7 +53,7 @@ config_settings = ConfigSettings(
     address=config["settings"]["address"],
     server_rm=config["settings"].get("rm", None),
     server_rrm=config["settings"].get("rrm", None),
-    server_queue=config["settings"].get("queue", False),
+    server_wait_need=config["settings"].get("wait_need", False),
     all_path=config["settings"].get("all_path", False),
     behind_nginx=config["settings"].get("behind_nginx", False),
     server_max_wait_time=config["settings"].get("max_wait_time", None),

@@ -24,7 +24,7 @@ sudo docker compose up --build
 address = "127.0.0.1:8000" # address where requests are forwarded
 rm = '5/m' # default rate limiter (for server and all_path)
 rrm = '1/m'
-queue=false # True - queued and sent code; False - client will wait; False by default
+wait_need = false # false - queued and sent code; true - client will wait; False by default
 all_path = true # for routes not listed in the config, use the server settings
 behind_nginx = false # This is needed to correctly extract the IP from the request. If true, you need to uncomment nginx in docker-compose.yaml for it to work correctly.
 max_wait_time = 62.5 # Measured in seconds. If the wait time is more than max_wait_time seconds, the request is immediately sent with code 429 and a clear message. Please note that we do not wait max_wait_time seconds, but it is calculated using the formula thanks to the fixed RPS
@@ -36,8 +36,8 @@ shaper_strategy = true # When this flag is enabled, rm is disabled completely. A
 path = "/api/v1/products"
 rm = "5/m" # how many requests will be accepted
 rrm = "1/m" # how many requests will actually reach the server
-queue=false
-code=202 # also default code for queue
+wait_need = false
+code = 202 # also default code for queue
 active = true
 max_wait_time = 16.05
 

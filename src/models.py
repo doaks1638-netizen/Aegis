@@ -6,5 +6,5 @@ from src.rm import Action
 class ActionGO(BaseModel):
     method: Action = Action.GO
     general: bool
-    is_queue: bool
+    wait_need: bool
     is_overloaded: bool
