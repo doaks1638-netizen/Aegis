@@ -6,6 +6,7 @@ from redis.asyncio import Redis
 from src.core import ags_logger as logger
 from src.core import config_settings, router_paths
 from src.exceptions import RMTypeErr, UnknownIPErr
+from src.models import ActionGO
 
 from .rm_enum import Action
 
@@ -77,9 +78,7 @@ async def evaluate(request: Request):
                 return Action.BLOCK
             rrm = current.rrm if current.rrm is not None else config_settings.server_rrm
             rm = current.rm if current.rm is not None else config_settings.server_rm
-            if rrm is None or (
-                rm == rrm and not shaper
-            ):
+            if rrm is None or (rm == rrm and not shaper):
                 return Action.PROXY
             if (await redis.get(lock_exc_key)) is not None:
                 return Action.ERROR
@@ -97,12 +96,11 @@ async def evaluate(request: Request):
                 )
             else:
                 is_overloaded = False
-            return (
-                Action.GO,
-                True,
-                router_paths[path].queue,
-                is_overloaded,
-            )  # True - matched path, take specific worker
+            return ActionGO(
+                general=False,
+                is_queue=router_paths[path].queue,
+                is_overloaded=is_overloaded,
+            )
         path = (path.rsplit("/", maxsplit=1)[0] or "/") if path != "/" else ""
     if config_settings.all_path:
         lock_exc_key = "exc:lock:general"
@@ -122,11 +120,10 @@ async def evaluate(request: Request):
             ) > config_settings.server_max_wait_time
         else:
             is_overloaded = False
-        return (
-            Action.GO,
-            False,
-            config_settings.server_queue,
-            is_overloaded,
-        )  # False - take general worker
+        return ActionGO(
+            general=True,
+            is_queue=config_settings.server_queue,
+            is_overloaded=is_overloaded,
+        )
     else:
         return Action.PROXY
