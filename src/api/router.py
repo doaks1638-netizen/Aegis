@@ -1,4 +1,5 @@
 import json
+import time
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -28,7 +29,10 @@ async def request_to_dict(request: Request) -> dict:
 
 @app.api_route("/{full_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
 async def handler_func(request: Request):
-    logger.info(f"A request has arrived for - {request.url.path}")
+    start = time.perf_counter()
+    logger.info(
+        f"REQUEST - {request.url=} - {request.headers.get('x-real-ip', 'NO IP')} - {request.method}"
+    )
     redis: Redis = request.app.state.redis
     status = await evaluate(request=request)
     if status == Action.BLOCK:
@@ -60,7 +64,9 @@ async def handler_func(request: Request):
             logger.info("Waiting for a response from Redis")
             result = await redis_client.blpop(lock_key)
         _, value = result  # pyright: ignore[reportGeneralTypeIssues]
-        logger.info("We send a request to the client")
+        logger.info(
+            f"We send a request to the client. The response time was - {time.perf_counter() - start} sec."
+        )
         return Response(**json.loads(value))
 
     else:
