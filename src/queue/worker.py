@@ -11,16 +11,44 @@ from src.core import config_settings, router_paths
 from src.rm import sec_of_limit
 
 
+async def handle_exception(redis: Redis, path: str, exc_key: str, lock_exc_key: str):
+    if path == "general":
+        sec_cooldown = config_settings.server_sec_cooldown
+        max_failures = config_settings.server_max_failures
+    elif (path_sec_cooldown := router_paths[path].sec_cooldown) is not None and (
+        path_max_failures := router_paths[path].max_failures
+    ) is not None:
+        sec_cooldown = path_sec_cooldown
+        max_failures = path_max_failures
+    elif (path_max_failures := router_paths[path].max_failures) is not None:
+        sec_cooldown = config_settings.server_sec_cooldown
+        max_failures = path_max_failures
+    else:
+        max_failures = None
+        sec_cooldown = 0
+    if max_failures is not None:
+        fails = await redis.incr(exc_key)
+        if fails >= max_failures:
+            await redis.set(lock_exc_key, "1", ex=int(sec_cooldown))
+            await redis.delete(exc_key)
+
+
+def get_redis_keys(path: str):
+    return (
+        f"queue:{path}",
+        f"last_modifed:worker_{path}",
+        f"exc:{path}",
+        f"exc:lock:{path}",
+    )
+
+
 async def worker_task(app: FastAPI, path: str | None, rrm: str):
     # Each worker works with one queue, race-condition is not possible
     redis: Redis = app.state.redis
     count, rps = sec_of_limit(rrm)
     tact = rps / count
     path = path if path is not None else "general"
-    key = f"queue:{path}"
-    last_modifed_key = f"last_modifed:worker_{path}"  # last-changed key for each worker
-    exc_key = f"exc:{path}"
-    lock_exc_key = f"exc:lock:{path}"
+    key, last_modifed_key, exc_key, lock_exc_key = get_redis_keys(path)
     logger.info("The worker has initialized.")
     while True:
         try:
@@ -44,29 +72,9 @@ async def worker_task(app: FastAPI, path: str | None, rrm: str):
                     data=result["request"], app=app
                 )
                 if exc_flag:
-                    if path == "general":
-                        sec_cooldown = config_settings.server_sec_cooldown
-                        max_failures = config_settings.server_max_failures
-                    elif (
-                        path_sec_cooldown := router_paths[path].sec_cooldown
-                    ) is not None and (
-                        path_max_failures := router_paths[path].max_failures
-                    ) is not None:
-                        sec_cooldown = path_sec_cooldown
-                        max_failures = path_max_failures
-                    elif (
-                        path_max_failures := router_paths[path].max_failures
-                    ) is not None:
-                        sec_cooldown = config_settings.server_sec_cooldown
-                        max_failures = path_max_failures
-                    else:
-                        max_failures = None
-                        sec_cooldown = 0
-                    if max_failures is not None:
-                        fails = await redis.incr(exc_key)
-                        if fails >= max_failures:
-                            await redis.set(lock_exc_key, "1", ex=int(sec_cooldown))
-                            await redis.delete(exc_key)
+                    await handle_exception(
+                        redis, path, exc_key=exc_key, lock_exc_key=lock_exc_key
+                    )
                 else:
                     await redis.delete(exc_key)
                 if (lock_key := result["lock"]) is not None:

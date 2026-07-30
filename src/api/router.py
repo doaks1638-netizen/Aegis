@@ -25,15 +25,54 @@ async def request_to_dict(request: Request) -> dict:
         "url": str(request.url),
         "headers": dict(request.headers),
         # Decode bytes into a standard string (works for JSON and text)
-        "body": (await request.body()).decode("utf-8"),  # pyright: ignore[reportAttributeAccessIssue]
+        "body": (await request.body()).decode("utf-8"),
     }
+
+
+async def slow_strategy(
+    redis: Redis, request: Request, status: ActionGO, start_time: float
+):
+    lock_key = f"key:{uuid4()}"
+    value = {"lock": lock_key, "request": await request_to_dict(request=request)}
+    await put_task(
+        request=request,
+        path=request.url.path,
+        general=status.general,
+        value=value,
+    )
+    logger.info("We are waiting for the lock to be removed.")
+    async with redis.client() as redis_client:
+        logger.info("Waiting for a response from Redis")
+        result = await redis_client.blpop(lock_key)
+        assert result is not None
+    _, value = result
+    logger.info(
+        f"We send a request to the client. The response time was - {time.perf_counter() - start_time} sec."
+    )
+    return Response(**json.loads(value))
+
+
+async def fast_strategy(redis: Redis, request: Request, status: ActionGO):
+    value = {"lock": None, "request": await request_to_dict(request=request)}
+    logger.info("We put it in the queue and return the code")
+    await put_task(
+        request=request,
+        path=request.url.path,
+        general=status.general,
+        value=value,
+    )
+    logger.info("We send a request to the client")
+    return JSONResponse(
+        status_code=config_settings.response_code,
+        content="Data successfully received. Processing will be finished soon!",
+    )
 
 
 @app.api_route("/{full_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
 async def handler_func(request: Request):
     start = time.perf_counter()
     logger.info(
-        f"REQUEST - {request.url=} - {request.headers.get('x-real-ip', 'NO IP')} - {request.method}"
+        f"REQUEST - {request.url=} - {request.headers.get('x-real-ip', request.client.host if request.client else 'NO IP')} - {request.method}"
     )
     redis: Redis = request.app.state.redis
     status: Action | ActionGO = await evaluate(request=request)
@@ -51,35 +90,7 @@ async def handler_func(request: Request):
             429, detail="The server is overloaded, please try your request later."
         )
     if status.wait == WaitStrategy.SLOW:
-        lock_key = f"key:{uuid4()}"
-        value = {"lock": lock_key, "request": await request_to_dict(request=request)}
-        await put_task(
-            request=request,
-            path=request.url.path,
-            general=status.general,
-            value=value,  # pyright: ignore[reportArgumentType]
-        )
-        logger.info("We are waiting for the lock to be removed.")
-        async with redis.client() as redis_client:
-            logger.info("Waiting for a response from Redis")
-            result = await redis_client.blpop(lock_key)
-        _, value = result  # pyright: ignore[reportGeneralTypeIssues]
-        logger.info(
-            f"We send a request to the client. The response time was - {time.perf_counter() - start} sec."
-        )
-        return Response(**json.loads(value))
+        return await slow_strategy(redis, request, status, start)
 
     else:
-        value = {"lock": None, "request": await request_to_dict(request=request)}
-        logger.info("We put it in the queue and return the code")
-        await put_task(
-            request=request,
-            path=request.url.path,
-            general=status.general,
-            value=value,  # pyright: ignore[reportArgumentType]
-        )
-        logger.info("We send a request to the client")
-        return JSONResponse(
-            status_code=config_settings.response_code,
-            content="Data successfully received. Processing will be finished soon!",
-        )
+        return await fast_strategy(redis, request, status)
