@@ -7,6 +7,11 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v6
-      - name: Test code - pytest
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+      - name: Set dependencies
         run: |
-          pytest -s -vv
+          uv sync
+      - name: Testing code using pytest
+        run: |
+          uv run pytest -s -vv
