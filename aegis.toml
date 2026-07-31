@@ -2,7 +2,7 @@
 address = "192.168.0.14:8000"
 rm = '15/m'
 rrm = '10/m'
-wait = "fast"
+wait = "slow"
 all_path = true
 behind_nginx = false
 max_wait_time = 60.0

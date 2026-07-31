@@ -49,7 +49,7 @@ async def limit_exceeded(request: Request, path: str, all_path: bool = False):
         return await checker(rm, key)
 
 
-async def router_path_status(redis, request: Request, path: str):
+async def router_path_status(redis: Redis, request: Request, path: str):
     lock_exc_key = f"exc:lock:{path}"
     current = router_paths[path]
     shaper = current.shaper_strategy or config_settings.server_shaper_strategy
@@ -74,11 +74,17 @@ async def router_path_status(redis, request: Request, path: str):
             if current_max_wait_time is not None
             else config_settings.server_max_wait_time
         )
-        if (
-            max_wait_time
-            and ((await redis.llen(f"queue:{path}")) * tact) > max_wait_time
-        ):
-            return Action.OVERLOADED
+        if max_wait_time:
+            quue_len = await redis.llen(f"queue:{path}")
+            raw_last_modifed: str | None | bytes = await redis.get(
+                f"last_modifed:worker_{path}"
+            )
+            if isinstance(raw_last_modifed, str):
+                wait_time = tact - (time.time() - float(raw_last_modifed))
+            else:
+                wait_time = 0.0
+            if (quue_len * tact) + wait_time > max_wait_time:
+                return Action.OVERLOADED
     route_wait = router_paths[path].wait
     return ActionGO(
         general=RouteScope.SPECIFIC,
@@ -100,9 +106,15 @@ async def all_path_status(redis: Redis, request: Request):
     if config_settings.server_max_wait_time is not None:
         count, rps = sec_of_limit(config_settings.server_rrm)
         tact = rps / count
-        if (
-            (await redis.llen("queue:general")) * tact
-        ) > config_settings.server_max_wait_time:
+        quue_len = await redis.llen("queue:general")
+        raw_last_modifed: str | None | bytes = await redis.get(
+            "last_modifed:worker_general"
+        )
+        if isinstance(raw_last_modifed, str):
+            wait_time = tact - (time.time() - float(raw_last_modifed))
+        else:
+            wait_time = 0.0
+        if (quue_len * tact) + wait_time > config_settings.server_max_wait_time:
             return Action.OVERLOADED
     return ActionGO(
         general=RouteScope.GLOBAL,
