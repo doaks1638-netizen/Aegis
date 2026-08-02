@@ -14,9 +14,9 @@ async def fakeredis():
 
 @pytest.fixture(scope="function")
 async def mock_redis(monkeypatch):
-    async with FakeRedis(decode_responses=True) as fakeredis:
-        monkeypatch.setattr(asyncioredis, "from_url", lambda *args, **kwargs: fakeredis)
-        yield fakeredis
+    fakeredis = FakeRedis(decode_responses=True)
+    monkeypatch.setattr(asyncioredis, "from_url", lambda *args, **kwargs: fakeredis)
+    yield fakeredis
 
 
 @pytest.fixture(scope="function")

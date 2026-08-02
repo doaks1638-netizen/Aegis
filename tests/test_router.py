@@ -8,6 +8,7 @@ from src.core import config_settings
 def path_test_rate_limeter(monkeypatch):
     monkeypatch.setattr(config_settings, "all_path", True)
     monkeypatch.setattr(config_settings, "server_rm", "1/m")
+    monkeypatch.setattr(config_settings, "server_wait", "slow")
 
 
 def test_rate_limeter(path_test_rate_limeter, client):
@@ -20,6 +21,7 @@ def test_rate_limeter(path_test_rate_limeter, client):
 def path_test_proxy(monkeypatch):
     monkeypatch.setattr(config_settings, "all_path", False)
     monkeypatch.setattr(config_settings, "server_rm", "1/m")
+    monkeypatch.setattr(config_settings, "server_wait", "slow")
 
 
 def test_proxy(path_test_proxy, client):
@@ -53,6 +55,7 @@ def path_test_overload(monkeypatch):
     monkeypatch.setattr(config_settings, "server_rm", "500/m")
     monkeypatch.setattr(config_settings, "server_rrm", "1/m")
     monkeypatch.setattr(config_settings, "server_max_wait_time", 1.5)
+    monkeypatch.setattr(config_settings, "server_wait", "slow")
 
 
 def test_overload(path_test_overload, client):
