@@ -5,6 +5,7 @@ description = "Protect heavy backend APIs (LLMs, ML models, scraping) from traff
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aio-pika>=10.0.1",
     "fakeredis>=2.37.0",
     "fastapi>=0.139.2",
     "httpx>=0.28.1",

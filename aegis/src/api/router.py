@@ -5,12 +5,12 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from redis.asyncio import Redis
-
 from src.core import ags_logger as logger
 from src.core import config_settings
 from src.enums import Action
 from src.lifespan import lifespan
 from src.models import ActionGO, WaitStrategy
+from src.mq import PubsliherDepends
 from src.queue import put_task
 from src.rm import evaluate
 
@@ -69,7 +69,7 @@ async def fast_strategy(redis: Redis, request: Request, status: ActionGO):
 
 
 @app.api_route("/{full_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
-async def handler_func(request: Request):
+async def handler_func(request: Request, publisher: PubsliherDepends):
     start = time.perf_counter()
     logger.info(
         f"REQUEST - {request.url=} - {request.headers.get('x-real-ip', request.client.host if request.client else 'NO IP')} - {request.method}"
@@ -84,6 +84,7 @@ async def handler_func(request: Request):
         return await proxy_pass(request=request)
     if status == Action.ERROR:
         logger.error("The number of errors has exceeded the limit! Sending code 503.")
+        await publisher.publish_msg(msg='The number of errors has exceeded the limit!', routing_key='errors')
         raise HTTPException(503, detail="Server error. Please try again later.")
     if status == Action.OVERLOADED:
         raise HTTPException(

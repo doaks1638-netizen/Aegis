@@ -4,7 +4,6 @@ import time
 
 from fastapi import FastAPI
 from redis.asyncio import Redis
-
 from src.api import proxy_pass_dict
 from src.core import ags_logger as logger
 from src.core import config_settings, router_paths

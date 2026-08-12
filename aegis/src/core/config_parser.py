@@ -1,6 +1,7 @@
-import tomllib
 from pathlib import Path
 from typing import Any
+
+import tomllib
 
 
 def parse_toml_config(file_path: str | Path) -> dict[str, Any]:
@@ -13,4 +14,5 @@ def parse_toml_config(file_path: str | Path) -> dict[str, Any]:
     with path.open("rb") as f:
         return tomllib.load(f)
 
-config = parse_toml_config('./aegis.toml')
+
+config = parse_toml_config("./aegis.toml")

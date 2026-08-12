@@ -2,9 +2,9 @@ FROM python:3.12.2-bookworm AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-WORKDIR /Aegis
+WORKDIR /push_service
 
-COPY pyproject.toml uv.lock ./
+COPY push_service/pyproject.toml push_service/uv.lock ./
 
 RUN uv sync --no-install-project
 
@@ -17,8 +17,6 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 WORKDIR /Aegis
 
-COPY .env .
-
 COPY --from=builder /Aegis/.venv .
 
-COPY . . 
+COPY .push_service/ ./ 

@@ -17,4 +17,4 @@ jobs:
           uv sync
       - name: Testing code using pytest
         run: |
-          uv run pytest -s -vv
+          cd aegis && uv run pytest -s -vv
