@@ -1,10 +1,10 @@
 import asyncio
 from contextlib import asynccontextmanager
 
+import aio_pika as apika
 import redis.asyncio as asyncioredis
 from fastapi import FastAPI
 from httpx import AsyncClient
-
 from src.core import config_settings, routes, settings
 from src.queue import worker_task
 
@@ -16,9 +16,11 @@ async def lifespan(app: FastAPI):
         asyncioredis.from_url(
             settings.get_redis_url(), decode_responses=True, socket_timeout=None
         ) as redis,
+        await apika.connect_robust(url=settings.get_mq_url()) as mq,
     ):
         app.state.client = client
         app.state.redis = redis
+        app.state.mq = mq
         tasks: list[asyncio.Task] = []
         for route in routes:
             if isinstance(route.rrm, str):

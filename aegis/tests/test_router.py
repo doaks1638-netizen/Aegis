@@ -1,6 +1,5 @@
 import pytest
 from fastapi import Response
-
 from src.core import config_settings
 
 

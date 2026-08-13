@@ -3,7 +3,6 @@ from typing import Annotated
 
 from pydantic import BaseModel, Field, field_validator
 from pydantic_settings import BaseSettings
-
 from src.enums import ReqLStrategy, WaitStrategy
 
 from .config_parser import config

@@ -1,7 +1,7 @@
 services:
   redis:
     image: redis:7.4-alpine
-    container_name: my-redis
+    container_name: redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -27,7 +27,7 @@ services:
   aegis:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      dockerfile: ./aegis/Dockerfile
     container_name: aegis
     restart: unless-stopped
     command: uv run uvicorn src.api.router:app --host 0.0.0.0 --port 6378 --loop uvloop
@@ -35,13 +35,44 @@ services:
       - "6378:6378"
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - MQ_USER=${MQ_USER}
+      - MQ_PASSWORD=${MQ_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
       redis:
         condition: service_healthy
-    volumes:
-      - ./logs:/Aegis/logs
     networks:
       - external
+      - internal
+
+  push_service:
+    build:
+      context: .
+      dockerfile: ./push_service/Dockerfile
+    container_name: push_service
+    restart: unless-stopped
+    command: uv run main.py
+    environment:
+      - TG_TOKEN=${TG_TOKEN}
+      - TG_CHAT_ID=${TG_CHAT_ID}
+      - MQ_USER=${MQ_USER}
+      - MQ_PASSWORD=${MQ_PASSWORD}
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+
+  rmq:
+    image: rabbitmq:4.3.4-management
+    container_name: rmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${MQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${MQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_log:/var/log/rabbitmq
+    networks:
       - internal
 
   #nginx:
@@ -59,6 +90,8 @@ services:
 volumes:
   redis-data:
     driver: local
+  rabbitmq_log:
+  rabbitmq_data:
 
 networks:
   external:

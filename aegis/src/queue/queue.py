@@ -2,7 +2,6 @@ import json
 
 from fastapi import Request
 from redis.asyncio import Redis
-
 from src.enums import RouteScope
 
 

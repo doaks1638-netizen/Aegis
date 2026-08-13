@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-
 from src.enums import Action, RouteScope, WaitStrategy
 
 
