@@ -14,7 +14,10 @@ jobs:
           mv .env.example .env
       - name: Set dependencies
         run: |
-          uv sync
+          cd aegis && uv sync cd ../push_service && uv sync
       - name: Testing code using pytest
         run: |
           cd aegis && uv run pytest -s -vv
+      - name: Checking code with ruff
+        run: |
+          cd aegis && uv run uv run ruff check . --isolated --select E9,PLE,F821 --ignore F401,F841 && cd ../push_service && uv run ruff check . --isolated --select E9,PLE,F821 --ignore F401,F841
