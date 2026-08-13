@@ -9,7 +9,7 @@ class Consumer:
         self._channel = channel
 
     async def _declare(self, queue_name: str):
-        return await self._channel.declare_queue(name=queue_name, durable=True)
+        return await self._channel.declare_queue(name=queue_name, durable=True, arguments={'x-message-ttl':10})
 
     async def create_callback(
         self,

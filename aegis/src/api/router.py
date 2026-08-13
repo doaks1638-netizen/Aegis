@@ -1,5 +1,6 @@
 import json
 import time
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -84,7 +85,12 @@ async def handler_func(request: Request, publisher: PubsliherDepends):
         return await proxy_pass(request=request)
     if status == Action.ERROR:
         logger.error("The number of errors has exceeded the limit! Sending code 503.")
-        await publisher.publish_msg(msg='The number of errors has exceeded the limit!', routing_key='errors')
+        await publisher.publish_msg(
+            msg=f"""
+The number of errors has exceeded the limit\n
+TIME {datetime.now(tz=timezone.utc)}!""",
+            routing_key="errors",
+        )
         raise HTTPException(503, detail="Server error. Please try again later.")
     if status == Action.OVERLOADED:
         raise HTTPException(

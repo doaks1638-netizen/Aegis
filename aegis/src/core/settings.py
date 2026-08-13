@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     MQ_PASSWORD: str
 
     def get_mq_url(self) -> str:
-        return f"amqp://{self.MQ_USER}:{self.MQ_PASSWORD}@mq:5672/"
+        return f"amqp://{self.MQ_USER}:{self.MQ_PASSWORD}@rmq:5672/"
 
     def get_redis_url(self) -> str:
         return f"redis://:{self.REDIS_PASSWORD}@redis:6379/0"

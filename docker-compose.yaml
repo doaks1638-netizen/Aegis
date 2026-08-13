@@ -37,6 +37,7 @@ services:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - MQ_USER=${MQ_USER}
       - MQ_PASSWORD=${MQ_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
       redis:
         condition: service_healthy
@@ -62,6 +63,18 @@ services:
     networks:
       - internal
 
+  rmq:
+    image: rabbitmq:4.3.4-management
+    container_name: rmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${MQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${MQ_PASSWORD}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_log:/var/log/rabbitmq
+    networks:
+      - internal
+
   #nginx:
   #  build:
   #    context: .
@@ -77,6 +90,8 @@ services:
 volumes:
   redis-data:
     driver: local
+  rabbitmq_log:
+  rabbitmq_data:
 
 networks:
   external:

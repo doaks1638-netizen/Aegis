@@ -10,7 +10,7 @@ class Pubsliher:
         self._channel = channel
 
     async def _declare(self, queue_name: str):
-        return await self._channel.declare_queue(name=queue_name, durable=True)
+        return await self._channel.declare_queue(name=queue_name, durable=True, arguments={'x-message-ttl':10})
 
     async def publish_msg(self, msg: str, routing_key: str):
         await self._declare(queue_name=routing_key)

@@ -10,9 +10,10 @@ class Settings(BaseSettings):
     TG_CHAT_ID: str
     MQ_USER: str
     MQ_PASSWORD: str
+    WARN_WAIT_TIME_SEC: float = 60
 
     def get_mq_url(self):
-        return f"amqp://{self.MQ_USER}:{self.MQ_PASSWORD}@mq:5672/"
+        return f"amqp://{self.MQ_USER}:{self.MQ_PASSWORD}@rmq:5672/"
 
     model_config = SettingsConfigDict(
         extra="ignore",
@@ -21,4 +22,4 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings() # type: ignore
+settings = Settings()  # type: ignore

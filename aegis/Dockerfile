@@ -19,4 +19,4 @@ WORKDIR /Aegis
 
 COPY --from=builder /Aegis/.venv .
 
-COPY .aegis/ ./ 
+COPY aegis/ ./ 

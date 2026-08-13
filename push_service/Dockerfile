@@ -15,8 +15,8 @@ ENV PYTHONUNBUFFERED=1
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-WORKDIR /Aegis
+WORKDIR /rabbitmq_data
 
-COPY --from=builder /Aegis/.venv .
+COPY --from=builder /push_service/.venv .
 
-COPY .push_service/ ./ 
+COPY push_service/ ./ 
